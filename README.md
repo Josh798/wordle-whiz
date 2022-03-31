@@ -1,4 +1,4 @@
-# Wordle Solver
+# Wordle Whiz
 
 This Wordle solver requires Python 3. Run it like this:
 
