@@ -8,11 +8,11 @@ python main.py
 
 After telling you the guess, the solver will prompt you for input. You should enter 5 characters, then press enter. Each character you type is either a 'x', '*', or '!' character.
 
-**'x'** means the character is not in the word (GRAY in Wordle).
+`x` means the character is not in the word (GRAY in Wordle).
 
-**'*'** means the character is in the word, but is in the wrong spot (YELLOW in Wordle).
+`*` means the character is in the word, but is in the wrong spot (YELLOW in Wordle).
 
-**'!'** means the character is in the word and is in the correct spot (GREEN in Wordle).
+`!` means the character is in the word and is in the correct spot (GREEN in Wordle).
 
 If at any point the solver gives you a word that Wordle (or your Wordle app) rejects, simply press CTRL+D to skip this word and get the next word.
 
