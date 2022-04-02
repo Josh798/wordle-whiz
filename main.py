@@ -23,6 +23,11 @@ known = [
     ''
 ]
 
+# Duplicate the wordset, but we will not modify this one. (Except if
+# the user tells us a word was rejected, then we will take it out of
+# this set.)
+staticwordset = set(wordset)
+
 guesses = 0
 
 while True:
@@ -45,22 +50,38 @@ while True:
     for i in range(0, 26):
         freq[i] /= total
 
-    high = ''
-    maxprob = 0
-    for w in wordset:
-        s = set()
-        for c in w:
-            s.add(c)
+    guess = ''
+    if (len(wordset) <= 2):
+        # If there are only 1 or 2 possible solutions, you are better off to
+        # guess at random than to pick a word from the set of non-solutions
+        # in order to eliminate a word from the set of possible solutions.
+        guess = wordset.pop()
+    else:
+        if guesses >= 6:
+            # If we are on the last guess, we want to make sure
+            # we guess from the set of possible solutions. Idealy,
+            # by the 6th guess, there is only one solution, which
+            # we would have picked above.
+            guessset = wordset
+        else:
+            # Otherwise, we can pick from every word.
+            guessset = staticwordset
         
-        prob = 0
-        for c in s:
-            prob += freq[letter2num[c]]
-        
-        if prob > maxprob:
-            maxprob = prob
-            high = w
+        maxprob = 0
+        for w in guessset:
+            s = set()
+            for c in w:
+                s.add(c)
+            
+            prob = 0
+            for c in s:
+                if c not in known or guesses >= 6:
+                    prob += freq[letter2num[c]]
+            
+            if prob > maxprob:
+                maxprob = prob
+                guess = w
 
-    guess = high
     print('best guess: ' + guess)
 
     # enter: x for wrong letter
@@ -71,7 +92,9 @@ while True:
         result = input('result: ')
         guesses += 1
     except EOFError:
-        wordset.remove(guess)
+        if wordset.__contains__(guess):
+            wordset.remove(guess)
+        staticwordset.remove(guess)
         print()
         continue
 
@@ -84,18 +107,36 @@ while True:
         break
 
     i = 0
+    addtonotcontains = ''
+    addtoknownwrongpos = [ '', '', '', '', '' ]
+    addtoknown = [ '', '', '', '', '' ]
     for c in result:
-        if c == 'x':
-            notcontains += guess[i]
+        if c == 'x' and guess[i] not in known:
+            addtonotcontains += guess[i]
         elif c == '*':
-            knownwrongpos[i] += guess[i]
+            addtoknownwrongpos[i] += guess[i]
         elif c == '!':
-            known[i] = guess[i]
+            addtoknown[i] = guess[i]
         
         i += 1
 
+    # If the user guesses something like 'ahead' and it commes back like '!xx*x',
+    # then we know there must be at least two 'a' characters in the word.
+    inferredlettercounts = dict()
+    notcontains += addtonotcontains
+    for i in range(0, 5):
+        knownwrongpos[i] += addtoknownwrongpos[i]
+        known[i] = addtoknown[i]
+        if addtoknownwrongpos.__contains__(addtoknown[i]):
+            inferredlettercounts[addtoknown[i]] = 1 + addtoknownwrongpos.count(addtoknown[i])
+
     removeme = set()
     for w in wordset:
+        for k in inferredlettercounts.keys():
+            num = inferredlettercounts[k]
+            if w.count(k) < num:
+                removeme.add(w)
+    
         for c in notcontains:
             if w.__contains__(c):
                 removeme.add(w)
@@ -110,3 +151,29 @@ while True:
 
     for w in removeme:
         wordset.remove(w)
+
+    # If every word in the set of possible solutions has a letter in the same
+    # spot, add that to the 'known' letters.
+    newknowns = list(wordset.pop())
+    wordset.add(''.join(newknowns))
+    for w in wordset:
+        for i in range(0, 5):
+            if newknowns[i] != w[i]:
+                newknowns[i] = ''
+    
+    for i in range(0, 5):
+        if newknowns[i] != '':
+            known[i] = newknowns[i]
+
+    # Loop through the words in a second pass to remove words that have
+    # 'inferred' knowns.
+    removeme = set()
+    for w in wordset:
+        for i in range(0, 5):
+            if known[i] != '' and known[i] != w[i]:
+                removeme.add(w)
+
+    for w in removeme:
+        wordset.remove(w)
+
+    # print(wordset)
